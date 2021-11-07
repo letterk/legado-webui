@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <title>{{ name }}</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        html {
+            background-color: #fffae8;
+        }
+
+        a {
+            color: #000;
+            text-decoration: none;
+        }
+
+        a:visited {
+            color: cornflowerblue;
+        }
+
+        a:hover {
+            color: crimson;
+        }
+
+        li {
+            float: left;
+            list-style: none;
+            margin: 0 1%;
+        }
+
+        ul li {
+            width: 22%;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        h2 {
+            text-align: center
+        }
+    </style>
+</head>
+
+<body>
+    <h2>{{ name }}</h2>
+    <ul>
+        {% for catalog in catalogs %}
+        <li>
+            <a href="{{ catalog.index }}/" title="{{ catalog.title }}">{{ catalog.title }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <title>{{ name }} - {{ title }}</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        html {
+            background-color: #cce8cf;
+        }
+
+        .content {
+            width: 800px;
+            margin: auto;
+            font-size: 22px;
+        }
+
+        p {
+            margin: 0.5em 0 0.5em;
+            line-height: 1.2em;
+            font-family: "Hiragino Sans GB W3";
+            color: #111;
+        }
+
+        h2 {
+            font-family: "LXGW WENKAI";
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+            border-color: #999;
+
+        }
+
+        .navigation {
+            width: 800px;
+            margin: auto;
+            text-align: center
+        }
+
+        .navigation div {
+            margin: 2em;
+            display: inline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="content">
+        <h2>{{ title }}</h2>
+        {% for i in content %}
+        <p>{{i}}</p>
+        {% endfor %}
+    </div>
+    <div class="navigation">
+        <div>
+            {% if prev_index == -1 %}
+            <span id="previous">没有了</span>
+            {% else %}
+            <a href="../{{prev_index}}/"><span id="previous">( 快捷键 ← ) 上一章</span></a>
+            {% endif %}
+        </div>
+        <div>
+            <a href=".."><span id="catalog">回目录</span></a>
+        </div>
+        <div>
+            {% if next_index == -1 %}
+            <span id="next">没有了</span>
+            {% else %}
+            <a href="../{{next_index}}/"><span id="next">下一章 ( 快捷键 → )</span></a>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        function keyboard(event) {
+            let keycode = event.keyCode;
+            if (keycode == 37) {
+                document.getElementById("previous").click()
+            }
+            else if (keycode == 39) {
+                document.getElementById("next").click()
+            }
+            else if(keycode == 13) {
+                document.getElementById("catalog").click()
+            }
+        }
+        document.addEventListener("keyup", keyboard);
+    </script>
+</body>
+
+</html>

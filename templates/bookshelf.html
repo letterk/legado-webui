@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <title>阅读app Web书架</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        html {
+            background-color: #fffae8;
+        }
+
+        body {
+            display: flex;
+        }
+
+        .shelf_left {
+            width: 200px;
+            flex-shrink: 0;
+            margin-right: 1em;
+        }
+
+        .shelf_right {
+            background-color: #fffae8;
+            flex: 1;
+        }
+
+        table,
+        tr td {
+            border-collapse: collapse;
+            border-color: #ddd;
+        }
+
+        td div,
+        td div a {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            display: block;
+            width: auto;
+        }
+
+        .header {
+            text-align: center;
+        }
+
+        tr:hover {
+            background-color: #cce8cf4d;
+        }
+
+        a:hover {
+            color: rgba(220, 20, 60, 0.9);
+        }
+
+        a {
+            color: #000;
+            TEXT-DECORATION: none
+        }
+
+        .book_name {
+            width: 150px;
+        }
+
+        .latest_title,
+        .mark_title {
+            width: 300px;
+        }
+    </style>
+</head>
+
+<body onload="cookie_hostip()">
+    <div class="shelf_left">
+        <h2>
+            <a href="/bookshelf/">阅读app Web书架</a>
+        </h2>
+        <p>{{books | length}} book</p>
+        <a href="/set_ip">设置后端ip</a>
+    </div>
+    {% if islegado == False %}
+
+    <form action="/set_ip" method="POST">
+        <input type="text" name="hostip" placeholder="xxx.xxx.xxx.xxx:1122" id="inputip">
+        <input type="submit" value="提交">
+        <p>输入阅读app的web服务地址, 格式 ip:端口</p>
+    </form>
+    {% else %}
+    <div class="shelf_right">
+        <table border="1">
+            <tr class="header">
+                <td>书名</td>
+                <td>最新章节</td>
+                <td>书签</td>
+                <td>作者</td>
+            </tr>
+            {% for book in books %}
+            <tr>
+                <td>
+                    <div class="book_name">
+                        <a href="/bookshelf/{{ book.id }}/" target="_blank" title="{{ book.name }}">{{ book.name }}</a>
+                    </div>
+                </td>
+                <td>
+                    <div class="latest_title">{{ book.latestChapterTitle }}</div>
+                </td>
+                <td>
+                    <div class="mark_title">
+                        <a href="/bookshelf/{{ book.id }}/{{ book.durChapterIndex }}/" target="_blank"
+                            title="{{ book.durChapterTitle }}">{{book.durChapterTitle }}</a>
+                    </div>
+                </td>
+                <td>
+                    <div>{{ book.author }}</div>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+    <script>
+        function cookie_hostip() {
+            let hostip = document.cookie.replace(/hostip=/, "");
+            if (hostip) {
+                document.getElementById("inputip").setAttribute("placeholder", hostip);
+            };
+        }
+    </script>
+</body>
+
+</html>

@@ -21,6 +21,7 @@
             line-height: 1.2em;
             font-family: "Hiragino Sans GB W3";
             color: #111;
+            word-wrap:break-word;
         }
 
         h2 {
@@ -40,6 +41,13 @@
         .navigation div {
             margin: 2em;
             display: inline;
+        }
+        span:active{
+            color: crimson;
+        }
+        a {
+            TEXT-DECORATION: none;
+            color: #000;
         }
     </style>
 </head>
@@ -79,7 +87,7 @@
             else if (keycode == 39) {
                 document.getElementById("next").click()
             }
-            else if(keycode == 13) {
+            else if (keycode == 13) {
                 document.getElementById("catalog").click()
             }
         }

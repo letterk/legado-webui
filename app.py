@@ -168,14 +168,15 @@ def content(bookid, index):
             next_index = index + 1
         else:
             next_index = -1
-
+        word = re.sub(r"\s", "", r)
         return render_template('content.html',
                                content=content,
                                name=name,
                                title=title,
                                bookid=curid,
                                prev_index=prev_index,
-                               next_index=next_index)
+                               next_index=next_index,
+                               characters_num=len(word))
     else:
         return redirect(url_for("set_ip"))
 

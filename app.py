@@ -21,29 +21,23 @@ data = DataStore()
 
 def is_legado(ip):
     """
-    阅读app code:2,
-    别的网站 code:1,
-    ip格式正确, 但是无法连接主机 code:0,
-    ip格式不正确 code:-1,
+    检查ip是否是阅读app
     """
     if ip and check_ip(ip):
         try:
             r = httpx.get(prefix + ip, timeout=2)
 
             if r.status_code == 200 and r.text.find("Legado") > -1:
-                return [2, ""]
+                return True
             else:
-                return [1, "这是别的网站, 或者端口不正确"]
+                return False
         except:
-            return [0, "ip格式正确, 但是无法连接, 请检查网络是否正常"]
-
-    else:
-        return [-1, "ip格式不正确"]
+            return False
 
 
 def check_ip(str):
     """
-    检查ip和端口是否正确
+    检查ip和端口格式是否正确
     """
     re_exp = '^[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\:([1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]{1}|6553[0-5]|[1-9][0-9]{0,3})$'
     res = re.search(re_exp, str)
@@ -61,8 +55,9 @@ def get_bookshelf():
     id_to_name
     """
     hostip = request.cookies.get('hostip')
-    if hostip is None:
+    if hostip is None or check_ip(hostip) is False:
         return False
+
     data.hostip = hostip
     try:
         books = httpx.get(prefix + hostip + "/getBookshelf")
@@ -107,7 +102,7 @@ def get_book_content(bookurl, bookindex):
 app = Flask(__name__)
 
 
-@app.route('/', methods=["POST", "GET"])
+@app.route('/', methods=["GET"])
 def hello():
     return redirect(url_for("bookshelf"))
 
@@ -190,17 +185,12 @@ def page_not_found(e):
     return redirect(url_for('go_404'))
 
 
-@app.route('/set_ip', methods=['POST', 'GET'])
+@app.route('/set_ip', methods=['GET', "POST"])
 def set_ip():
     if request.method == 'POST':
-        ip = request.form.get("hostip")
-        code = is_legado(ip)
-        if code[0] == 2:
-            resp = make_response(redirect(url_for("bookshelf")))
-            outdate = 365 * 24 * 60 * 60
-            resp.set_cookie("hostip", ip, max_age=outdate)
-
-            return resp
+        hostip = request.cookies.get('hostip')
+        if check_ip(hostip) and is_legado(hostip):
+            return redirect(url_for("bookshelf"))
         else:
             return render_template('bookshelf.html', islegado=False)
     else:

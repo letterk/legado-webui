@@ -68,7 +68,7 @@
     </style>
 </head>
 
-<body onload="cookie_hostip()">
+<body onload="get_cookie_hostip()">
     <div class="shelf_left">
         <h2>
             <a href="/bookshelf/">阅读app Web书架</a>
@@ -78,9 +78,9 @@
     </div>
     {% if islegado == False %}
 
-    <form action="/set_ip" method="POST">
-        <input type="text" name="hostip" placeholder="xxx.xxx.xxx.xxx:1122" id="inputip">
-        <input type="submit" value="提交">
+    <form method="POST">
+        <input type="text" name="hostip" value="" placeholder="xxx.xxx.xxx.xxx:1122" id="inputip">
+        <input type="submit" value="提交" onclick="setCookie()">
         <p>输入阅读app的web服务地址, 格式 ip:端口</p>
     </form>
     {% else %}
@@ -117,11 +117,21 @@
     </div>
     {% endif %}
     <script>
-        function cookie_hostip() {
+        function get_cookie_hostip() {
+            let inputbox = document.getElementById("inputip")
             let hostip = document.cookie.replace(/hostip=/, "");
-            if (hostip) {
-                document.getElementById("inputip").setAttribute("placeholder", hostip);
+            if (hostip && inputbox) {
+                inputbox.setAttribute("placeholder", hostip);
             };
+        }
+
+        function setCookie() {
+            var hostip = document.getElementsByName("hostip")[0].value;
+            var d = new Date();
+            d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
+            var samesite = "samesite=Lax"
+            var expires = "expires=" + d.toGMTString();
+            document.cookie = "hostip=" + hostip + "; " + expires + "; " + samesite;
         }
     </script>
 </body>

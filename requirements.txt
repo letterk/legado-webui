@@ -1,0 +1,4 @@
+Flask==2.0.2
+httpx==0.20.0
+python-dotenv==0.19.1
+yapf==0.31.0

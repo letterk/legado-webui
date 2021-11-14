@@ -1,5 +1,4 @@
 import re
-from types import NoneType
 from urllib import parse
 from flask import Flask, render_template, redirect, url_for, request, make_response
 import httpx
@@ -62,7 +61,7 @@ def get_bookshelf():
     id_to_name
     """
     hostip = request.cookies.get('hostip')
-    if isinstance(hostip, NoneType):
+    if hostip is None:
         return False
     data.hostip = hostip
     try:

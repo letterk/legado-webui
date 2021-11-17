@@ -1,0 +1,1 @@
+CALL env\Scripts\activate.bat && flask run

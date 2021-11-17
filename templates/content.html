@@ -2,9 +2,9 @@
 <html lang="zh">
 
 <head>
-    <meta charset="utf-8">
-    <title>{{ name }} - {{ title }}</title>
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <meta charset="utf-8" />
+    <title>{{ title }} - {{ name }}</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
     <style>
         html {
             background-color: #cce8cf;
@@ -42,7 +42,7 @@
         }
 
         .navigation {
-            text-align: center
+            text-align: center;
         }
 
         .navigation div {
@@ -55,7 +55,7 @@
         }
 
         a {
-            TEXT-DECORATION: none;
+            text-decoration: none;
             color: #000;
         }
     </style>
@@ -63,7 +63,7 @@
 
 <body>
     <div class="characters">{{ characters_num }} 字</div>
-    <h2>{{ title }} </h2>
+    <h2>{{ title }}</h2>
 
     <div class="underline"></div>
     <div class="content">
@@ -94,13 +94,11 @@
         function keyboard(event) {
             let keycode = event.keyCode;
             if (keycode == 37) {
-                document.getElementById("previous").click()
-            }
-            else if (keycode == 39) {
-                document.getElementById("next").click()
-            }
-            else if (keycode == 13) {
-                document.getElementById("catalog").click()
+                document.getElementById("previous").click();
+            } else if (keycode == 39) {
+                document.getElementById("next").click();
+            } else if (keycode == 13) {
+                document.getElementById("catalog").click();
             }
         }
         document.addEventListener("keyup", keyboard);

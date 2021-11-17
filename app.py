@@ -94,9 +94,20 @@ def get_chapterlist(bookurl):
 def get_book_content(bookurl, bookindex):
     hostip = data.hostip
     bookurl = parse.quote(bookurl)
-    r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
-                  "&index=" + bookindex)
-    return r.json()["data"]
+    n = 0
+    try:
+        n += 1
+        r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
+                      "&index=" + bookindex)
+        return r.json()["data"]
+    except httpx.ReadTimeout:
+        if n <= 3:
+            n += 1
+            r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
+                          "&index=" + bookindex,
+                          timeout=10)
+            return r.json()["data"]
+    return
 
 
 app = Flask(__name__)
@@ -146,6 +157,8 @@ def content(bookid, index):
             bookurl = data.id_to_url[str(bookid)]
             get_chapterlist(bookurl)
             r = get_book_content(bookurl, str(index))
+            if r is None:
+                return redirect(url_for('go_404'))
         except KeyError as e:
             return redirect(url_for('go_404'))
 

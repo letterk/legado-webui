@@ -68,6 +68,7 @@ def get_bookshelf():
     for book in books:
         id = zlib.crc32(book["name"].encode('utf8'))
         book["id"] = id
+        book["unread"] = book["totalChapterNum"] - book["durChapterIndex"] - 1
         data.id_to_url[str(id)] = book["bookUrl"]
         data.id_to_name[str(id)] = book["name"]
         data.id_to_totalindex[str(id)] = book["totalChapterNum"]

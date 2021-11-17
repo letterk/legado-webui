@@ -49,7 +49,7 @@ def check_ip(str):
 
 def get_bookshelf():
     """
-    书名经过crc32的到一串id数字
+    bookurl经过crc32生成id
     全局变量
     id_to_url
     id_to_name
@@ -66,7 +66,7 @@ def get_bookshelf():
 
     books = books.json()["data"]
     for book in books:
-        id = zlib.crc32(book["name"].encode('utf8'))
+        id = zlib.crc32(book["bookUrl"].encode('utf8'))
         book["id"] = id
         book["unread"] = book["totalChapterNum"] - book["durChapterIndex"] - 1
         data.id_to_url[str(id)] = book["bookUrl"]

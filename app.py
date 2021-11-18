@@ -3,6 +3,8 @@ from urllib import parse
 from flask import Flask, render_template, redirect, url_for, request, make_response
 import httpx
 import zlib
+import json
+import os
 
 prefix = "http://"
 #hostip = "192.168.31.199:1122"
@@ -16,7 +18,7 @@ class DataStore():
     hostip = ""
 
 
-data = DataStore()
+store = DataStore()
 
 
 def is_legado(ip):
@@ -58,7 +60,7 @@ def get_bookshelf():
     if hostip is None or check_ip(hostip) is False:
         return False
 
-    data.hostip = hostip
+    store.hostip = hostip
     try:
         books = httpx.get(prefix + hostip + "/getBookshelf")
     except:
@@ -69,9 +71,9 @@ def get_bookshelf():
         id = zlib.crc32(book["bookUrl"].encode('utf8'))
         book["id"] = id
         book["unread"] = book["totalChapterNum"] - book["durChapterIndex"] - 1
-        data.id_to_url[str(id)] = book["bookUrl"]
-        data.id_to_name[str(id)] = book["name"]
-        data.id_to_totalindex[str(id)] = book["totalChapterNum"]
+        store.id_to_url[str(id)] = book["bookUrl"]
+        store.id_to_name[str(id)] = book["name"]
+        store.id_to_totalindex[str(id)] = book["totalChapterNum"]
     return books
 
 
@@ -80,20 +82,20 @@ def get_chapterlist(bookurl):
     全局变量
     index_to_title {"index": "title"}
     '''
-    hostip = data.hostip
+    hostip = store.hostip
     bookurl = parse.quote(bookurl)
     r = httpx.get(prefix + hostip + "/getChapterList?url=" + bookurl)
 
     r = r.json()["data"]
     index = 0
     for i in r:
-        data.index_to_title[str(index)] = i["title"]
+        store.index_to_title[str(index)] = i["title"]
         index += 1
     return r
 
 
 def get_book_content(bookurl, bookindex):
-    hostip = data.hostip
+    hostip = store.hostip
     bookurl = parse.quote(bookurl)
     n = 0
     try:
@@ -109,6 +111,31 @@ def get_book_content(bookurl, bookindex):
                           timeout=10)
             return r.json()["data"]
     return
+
+
+def mkdir(path):
+    folder = os.path.exists(path)
+    if not folder:
+        os.makedirs(path)
+
+
+def get_local_txt(id, index):
+    path = './data/' + str(id) + '/'
+    filename = str(index) + '.json'
+    try:
+        with open(path + filename, "rt", encoding='utf8') as f:
+            r = json.load(f)
+        return r
+    except FileNotFoundError:
+        return False
+
+
+def set_local_txt(id, index, data):
+    path = './data/' + str(id) + '/'
+    filename = str(index) + '.json'
+    mkdir(path)
+    with open(path + filename, "w+", encoding='utf8') as f:
+        json.dump(data, f, ensure_ascii=False)
 
 
 app = Flask(__name__)
@@ -138,10 +165,10 @@ def catalog(bookid):
     """
     if get_bookshelf():
         try:
-            bookurl = data.id_to_url[str(bookid)]
+            bookurl = store.id_to_url[str(bookid)]
         except KeyError as e:
             return redirect(url_for('go_404'))
-        name = data.id_to_name[str(bookid)]
+        name = store.id_to_name[str(bookid)]
         r = get_chapterlist(bookurl)
         return render_template('catalog.html', catalogs=r, name=name)
     else:
@@ -153,9 +180,13 @@ def content(bookid, index):
     """
     内容页面
     """
-    if get_bookshelf():
+    data = get_local_txt(bookid, index)
+    if data:
+        pass
+
+    elif get_bookshelf():
         try:
-            bookurl = data.id_to_url[str(bookid)]
+            bookurl = store.id_to_url[str(bookid)]
             get_chapterlist(bookurl)
             r = get_book_content(bookurl, str(index))
             if r is None:
@@ -164,10 +195,10 @@ def content(bookid, index):
             return redirect(url_for('go_404'))
 
         content = re.split(r'\n', r)
-        name = data.id_to_name[str(bookid)]
-        title = data.index_to_title[str(index)]
+        name = store.id_to_name[str(bookid)]
+        title = store.index_to_title[str(index)]
         curid = str(bookid)
-        total_index = data.id_to_totalindex[str(bookid)]
+        total_index = store.id_to_totalindex[str(bookid)]
         if index - 1 >= 0:
             prev_index = index - 1
         else:
@@ -177,16 +208,27 @@ def content(bookid, index):
         else:
             next_index = -1
         word = re.sub(r"\s", "", r)
-        return render_template('content.html',
-                               content=content,
-                               name=name,
-                               title=title,
-                               bookid=curid,
-                               prev_index=prev_index,
-                               next_index=next_index,
-                               characters_num=len(word))
+        data = {
+            "content": content,
+            "name": name,
+            "title": title,
+            "bookid": curid,
+            "prev_index": prev_index,
+            "next_index": next_index,
+            "characters_num": len(word)
+        }
+        set_local_txt(str(bookid), str(index), data)
     else:
         return redirect(url_for("set_ip"))
+
+    return render_template('content.html',
+                           content=data["content"],
+                           name=data["name"],
+                           title=data["title"],
+                           bookid=data["bookid"],
+                           prev_index=data["prev_index"],
+                           next_index=data["next_index"],
+                           characters_num=data["characters_num"])
 
 
 @app.route('/404')

@@ -7,10 +7,12 @@ import json
 import os
 
 prefix = "http://"
-#hostip = "192.168.31.199:1122"
 
 
 class DataStore():
+    '''
+    全局变量
+    '''
     id_to_name = {}
     id_to_url = {}
     id_to_totalindex = {}
@@ -51,10 +53,11 @@ def check_ip(str):
 
 def get_bookshelf():
     """
-    bookurl经过crc32生成id
-    全局变量
+    赋值全局变量
     id_to_url
     id_to_name
+    id_to_totalindex
+    hostip
     """
     hostip = request.cookies.get('hostip')
     if hostip is None or check_ip(hostip) is False:
@@ -64,28 +67,27 @@ def get_bookshelf():
     try:
         books = httpx.get(prefix + hostip + "/getBookshelf")
     except:
-        return
+        return False
 
     books = books.json()["data"]
     for book in books:
-        id = zlib.crc32(book["bookUrl"].encode('utf8'))
-        book["id"] = id
+        url_id = zlib.crc32(book["bookUrl"].encode('utf8'))
+        book["id"] = url_id
         book["unread"] = book["totalChapterNum"] - book["durChapterIndex"] - 1
-        store.id_to_url[str(id)] = book["bookUrl"]
-        store.id_to_name[str(id)] = book["name"]
-        store.id_to_totalindex[str(id)] = book["totalChapterNum"]
+        store.id_to_url[str(url_id)] = book["bookUrl"]
+        store.id_to_name[str(url_id)] = book["name"]
+        store.id_to_totalindex[str(url_id)] = book["totalChapterNum"]
     return books
 
 
 def get_chapterlist(bookurl):
     '''
-    全局变量
-    index_to_title {"index": "title"}
+    赋值全局变量
+    index_to_title
     '''
     hostip = store.hostip
     bookurl = parse.quote(bookurl)
     r = httpx.get(prefix + hostip + "/getChapterList?url=" + bookurl)
-
     r = r.json()["data"]
     index = 0
     for i in r:
@@ -95,6 +97,9 @@ def get_chapterlist(bookurl):
 
 
 def get_book_content(bookurl, bookindex):
+    '''
+    超时重试3次
+    '''
     hostip = store.hostip
     bookurl = parse.quote(bookurl)
     n = 0
@@ -105,6 +110,7 @@ def get_book_content(bookurl, bookindex):
         return r.json()["data"]
     except httpx.ReadTimeout:
         if n <= 3:
+            print("超时重试:", n, "次")
             n += 1
             r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
                           "&index=" + bookindex,
@@ -119,8 +125,8 @@ def mkdir(path):
         os.makedirs(path)
 
 
-def get_local_txt(id, index):
-    path = './data/' + str(id) + '/'
+def get_local_txt(url_id, index):
+    path = './data/' + str(url_id) + '/'
     filename = str(index) + '.json'
     try:
         with open(path + filename, "rt", encoding='utf8') as f:
@@ -130,8 +136,8 @@ def get_local_txt(id, index):
         return False
 
 
-def set_local_txt(id, index, data):
-    path = './data/' + str(id) + '/'
+def set_local_txt(url_id, index, data):
+    path = './data/' + str(url_id) + '/'
     filename = str(index) + '.json'
     mkdir(path)
     with open(path + filename, "w+", encoding='utf8') as f:
@@ -151,8 +157,8 @@ def bookshelf():
     """
     书架页面
     """
-    if get_bookshelf():
-        books = get_bookshelf()
+    books = get_bookshelf()
+    if books:
         return render_template('bookshelf.html', books=books)
     else:
         return redirect(url_for("set_ip"))

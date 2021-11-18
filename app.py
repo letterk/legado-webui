@@ -5,6 +5,8 @@ import httpx
 import zlib
 import json
 import os
+from datetime import datetime
+import copy
 
 prefix = "http://"
 
@@ -16,8 +18,11 @@ class DataStore():
     id_to_name = {}
     id_to_url = {}
     id_to_totalindex = {}
-    index_to_title = {}
+    id_index_to_title = {}
     hostip = ""
+    shelf = {}
+    catalogs = {}
+    status = 0
 
 
 store = DataStore()
@@ -30,7 +35,6 @@ def is_legado(ip):
     if ip and check_ip(ip):
         try:
             r = httpx.get(prefix + ip, timeout=2)
-
             if r.status_code == 200 and r.text.find("Legado") > -1:
                 return True
             else:
@@ -53,12 +57,14 @@ def check_ip(str):
 
 def get_bookshelf():
     """
+    获取书架
     赋值全局变量
     id_to_url
     id_to_name
     id_to_totalindex
     hostip
     """
+    print("请求app获取书架")
     hostip = request.cookies.get('hostip')
     if hostip is None or check_ip(hostip) is False:
         return False
@@ -70,6 +76,7 @@ def get_bookshelf():
         return False
 
     books = books.json()["data"]
+    store.shelf = books
     for book in books:
         url_id = zlib.crc32(book["bookUrl"].encode('utf8'))
         book["id"] = url_id
@@ -82,36 +89,40 @@ def get_bookshelf():
 
 def get_chapterlist(bookurl):
     '''
+    获取目录
     赋值全局变量
-    index_to_title
+    id_index_to_title
     '''
+    print("请求app获取目录")
     hostip = store.hostip
     bookurl = parse.quote(bookurl)
     r = httpx.get(prefix + hostip + "/getChapterList?url=" + bookurl)
     r = r.json()["data"]
-    index = 0
+    url_id = zlib.crc32(r[0]["bookUrl"].encode('utf8'))
+    store.id_index_to_title[str(url_id)] = {}
     for i in r:
-        store.index_to_title[str(index)] = i["title"]
-        index += 1
+        store.id_index_to_title[str(url_id)][str(i["index"])] = i["title"]
+
     return r
 
 
 def get_book_content(bookurl, bookindex):
     '''
+    获取正文
     超时重试3次
     '''
+    print("请求app获取正文")
     hostip = store.hostip
     bookurl = parse.quote(bookurl)
     n = 0
     try:
-        n += 1
         r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
                       "&index=" + bookindex)
         return r.json()["data"]
     except httpx.ReadTimeout:
         if n <= 3:
-            print("超时重试:", n, "次")
             n += 1
+            print("超时重试:", n, "次")
             r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
                           "&index=" + bookindex,
                           timeout=10)
@@ -144,6 +155,25 @@ def set_local_txt(url_id, index, data):
         json.dump(data, f, ensure_ascii=False)
 
 
+def sync_mark(url_id, title, index):
+    '''
+    同步书签
+    '''
+    hostip = store.hostip
+    books = store.shelf
+    ts = int(datetime.now().timestamp() * 1000)
+    for book in books:
+        if book["id"] == url_id:
+            mark = copy.copy(book)
+            mark.pop("id")
+            mark.pop("unread")
+            mark["durChapterIndex"] = index
+            mark["durChapterTitle"] = title
+            mark["durChapterTime"] = ts
+            r = httpx.post(prefix + hostip + "/saveBook",
+                           data=json.dumps(mark))
+
+
 app = Flask(__name__)
 
 
@@ -169,13 +199,18 @@ def catalog(bookid):
     """
     目录页面
     """
-    if get_bookshelf():
-        try:
-            bookurl = store.id_to_url[str(bookid)]
-        except KeyError as e:
+    if not store.shelf:
+        get_bookshelf()
+
+    if store.shelf:
+        bookurl = store.id_to_url.get(str(bookid))
+        if not bookurl:
             return redirect(url_for('go_404'))
         name = store.id_to_name[str(bookid)]
-        r = get_chapterlist(bookurl)
+        r = store.catalogs.get(str(bookid))
+        if r is None:
+            r = get_chapterlist(bookurl)
+            store.catalogs[str(bookid)] = r
         return render_template('catalog.html', catalogs=r, name=name)
     else:
         return redirect(url_for("set_ip"))
@@ -187,22 +222,25 @@ def content(bookid, index):
     内容页面
     """
     data = get_local_txt(bookid, index)
+
+    if not store.shelf:
+        get_bookshelf()
+
     if data:
-        pass
+        sync_mark(bookid, data["title"], index)
 
-    elif get_bookshelf():
-        try:
-            bookurl = store.id_to_url[str(bookid)]
-            get_chapterlist(bookurl)
-            r = get_book_content(bookurl, str(index))
-            if r is None:
-                return redirect(url_for('go_404'))
-        except KeyError as e:
+    elif store.shelf:
+        bookurl = store.id_to_url.get(str(bookid))
+        if not bookurl:
             return redirect(url_for('go_404'))
-
+        elif not store.id_index_to_title.get(str(bookid)):
+            get_chapterlist(bookurl)
+        r = get_book_content(bookurl, str(index))
+        if r is None:
+            return redirect(url_for('go_404'))
         content = re.split(r'\n', r)
         name = store.id_to_name[str(bookid)]
-        title = store.index_to_title[str(index)]
+        title = store.id_index_to_title[str(bookid)][str(index)]
         curid = str(bookid)
         total_index = store.id_to_totalindex[str(bookid)]
         if index - 1 >= 0:
@@ -224,6 +262,7 @@ def content(bookid, index):
             "characters_num": len(word)
         }
         set_local_txt(str(bookid), str(index), data)
+
     else:
         return redirect(url_for("set_ip"))
 
@@ -243,7 +282,7 @@ def go_404():
 
 
 @app.errorhandler(404)
-def page_not_found(e):
+def page_not_found():
     return redirect(url_for('go_404'))
 
 

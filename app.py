@@ -22,7 +22,7 @@ class DataStore():
     hostip = ""
     shelf = {}
     catalogs = {}
-    status = 0
+    reset = 0  #刷新书架后需刷新目录
 
 
 store = DataStore()
@@ -68,7 +68,7 @@ def get_bookshelf():
     hostip = request.cookies.get('hostip')
     if hostip is None or check_ip(hostip) is False:
         return False
-
+    store.reset = 1
     store.hostip = hostip
     try:
         books = httpx.get(prefix + hostip + "/getBookshelf")
@@ -96,13 +96,16 @@ def get_chapterlist(bookurl):
     print("请求app获取目录")
     hostip = store.hostip
     bookurl = parse.quote(bookurl)
-    r = httpx.get(prefix + hostip + "/getChapterList?url=" + bookurl)
+    try:
+        r = httpx.get(prefix + hostip + "/getChapterList?url=" + bookurl)
+    except:
+        return False
     r = r.json()["data"]
     url_id = zlib.crc32(r[0]["bookUrl"].encode('utf8'))
     store.id_index_to_title[str(url_id)] = {}
     for i in r:
         store.id_index_to_title[str(url_id)][str(i["index"])] = i["title"]
-
+    store.reset = 0
     return r
 
 
@@ -118,15 +121,19 @@ def get_book_content(bookurl, bookindex):
     try:
         r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
                       "&index=" + bookindex)
-        return r.json()["data"]
+        if "data" in r.json():
+            return r.json()["data"]
     except httpx.ReadTimeout:
-        if n <= 3:
+        while n <= 3:
             n += 1
             print("超时重试:", n, "次")
             r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
                           "&index=" + bookindex,
                           timeout=10)
-            return r.json()["data"]
+            if "data" in r.json():
+                return r.json()["data"]
+    except:
+        return False
     return
 
 
@@ -201,19 +208,21 @@ def catalog(bookid):
     """
     if not store.shelf:
         get_bookshelf()
-
     if store.shelf:
         bookurl = store.id_to_url.get(str(bookid))
         if not bookurl:
             return redirect(url_for('go_404'))
         name = store.id_to_name[str(bookid)]
         r = store.catalogs.get(str(bookid))
-        if r is None:
+        if r is None or store.reset == 1:
             r = get_chapterlist(bookurl)
+        if r:
             store.catalogs[str(bookid)] = r
-        return render_template('catalog.html', catalogs=r, name=name)
+            return render_template('catalog.html', catalogs=r, name=name)
+        else:
+            return render_template('error.html', msg="请检查网络连接")
     else:
-        return redirect(url_for("set_ip"))
+        return redirect(url_for("bookshelf"))
 
 
 @app.route('/bookshelf/<int:bookid>/<int:index>/')
@@ -237,20 +246,16 @@ def content(bookid, index):
             get_chapterlist(bookurl)
         r = get_book_content(bookurl, str(index))
         if r is None:
-            return redirect(url_for('go_404'))
+            return render_template('error.html', msg="没有新章节了")
+        elif r is False:
+            return render_template('error.html', msg="请检查网络连接")
         content = re.split(r'\n', r)
         name = store.id_to_name[str(bookid)]
         title = store.id_index_to_title[str(bookid)][str(index)]
         curid = str(bookid)
-        total_index = store.id_to_totalindex[str(bookid)]
-        if index - 1 >= 0:
-            prev_index = index - 1
-        else:
-            prev_index = -1
-        if index + 1 <= total_index - 1:
-            next_index = index + 1
-        else:
-            next_index = -1
+        #total_index = store.id_to_totalindex[str(bookid)]
+        prev_index = index - 1
+        next_index = index + 1
         word = re.sub(r"\s", "", r)
         data = {
             "content": content,
@@ -264,7 +269,7 @@ def content(bookid, index):
         set_local_txt(str(bookid), str(index), data)
 
     else:
-        return redirect(url_for("set_ip"))
+        return redirect(url_for("bookshelf"))
 
     return render_template('content.html',
                            content=data["content"],
@@ -278,7 +283,7 @@ def content(bookid, index):
 
 @app.route('/404')
 def go_404():
-    return '<h2>地址错误, 返回<a href="bookshelf/">书架</a>吧</h2>'
+    return render_template('error.html', msg="404页面未找到")
 
 
 @app.errorhandler(404)

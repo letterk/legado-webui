@@ -1,108 +1,135 @@
 <!DOCTYPE html>
 <html lang="zh">
-
-<head>
-    <meta charset="utf-8" />
-    <title>{{ title }} - {{ name }}</title>
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
-    <style>
-        html {
-            background-color: #cce8cf;
-        }
-
-        body {
-            width: 800px;
-            margin: auto;
-        }
-
-        h2 {
-            margin: auto;
-            font-family: "LXGW WENKAI";
-        }
-
-        p {
-            margin: 0.5em 0 0.5em;
-            line-height: 1.2em;
-            font-family: "Hiragino Sans GB W3";
-            color: #111;
-            word-wrap: break-word;
-            font-size: 22px;
-        }
-
-        .characters {
-            margin-top: 1.5em;
-            float: right;
-            font-size: 0.5em;
-        }
-
-        .underline {
-            border-bottom-width: 1px;
-            border-bottom-style: solid;
-            border-color: #999;
-        }
-
-        .navigation {
-            text-align: center;
-        }
-
-        .navigation div {
-            margin: 2em;
-            display: inline;
-        }
-
-        span:active {
-            color: crimson;
-        }
-
-        a {
-            text-decoration: none;
-            color: #000;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="characters">{{ characters_num }} 字</div>
-    <h2>{{ title }}</h2>
-
-    <div class="underline"></div>
-    <div class="content">
-        {% for i in content %}
-        <p>{{i}}</p>
-        {% endfor %}
-    </div>
-    <div class="navigation">
-        <div>
-            {% if prev_index == -1 %}
-            <span id="previous">没有了</span>
-            {% else %}
-            <a href="../{{prev_index}}/"><span id="previous">( 快捷键 ← ) 上一章</span></a>
-            {% endif %}
-        </div>
-        <div>
-            <a href=".."><span id="catalog">回目录</span></a>
-        </div>
-        <div>
-            {% if next_index == -1 %}
-            <span id="next">没有了</span>
-            {% else %}
-            <a href="../{{next_index}}/"><span id="next">下一章 ( 快捷键 → )</span></a>
-            {% endif %}
-        </div>
-    </div>
-    <script>
-        function keyboard(event) {
-            let keycode = event.keyCode;
-            if (keycode == 37) {
-                document.getElementById("previous").click();
-            } else if (keycode == 39) {
-                document.getElementById("next").click();
-            } else if (keycode == 13) {
-                document.getElementById("catalog").click();
+    <head>
+        <meta charset="utf-8" />
+        <title>{{ title }} - {{ name }}</title>
+        <link
+            rel="icon"
+            href="{{ url_for('static', filename='favicon.ico') }}"
+        />
+        <style>
+            html {
+                background-color: #cce8cf;
             }
-        }
-        document.addEventListener("keyup", keyboard);
-    </script>
-</body>
 
+            body {
+                width: 800px;
+                margin: auto;
+            }
+
+            h2 {
+                margin: auto;
+                font-family: "LXGW WENKAI";
+            }
+
+            p {
+                margin: 0.5em 0 0.5em;
+                line-height: 1.2em;
+                font-family: "Hiragino Sans GB W3";
+                color: #111;
+                word-wrap: break-word;
+                font-size: 22px;
+            }
+
+            .characters {
+                margin-top: 1.5em;
+                float: right;
+                font-size: 0.5em;
+            }
+
+            .underline {
+                border-bottom-width: 1px;
+                border-bottom-style: solid;
+                border-color: #999;
+            }
+
+            .navigation {
+                text-align: center;
+            }
+
+            .navigation div {
+                margin: 2em;
+                display: inline;
+            }
+
+            span:active {
+                color: crimson;
+            }
+
+            a {
+                text-decoration: none;
+                color: #000;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="characters">{{ characters_num }} 字</div>
+        <h2>{{ title }}</h2>
+
+        <div class="underline"></div>
+        <div class="content">
+            {% for i in content %}
+            <p>{{i}}</p>
+            {% endfor %}
+        </div>
+        <div class="navigation">
+            <div>
+                {% if prev_index == -1 %}
+                <span id="previous">没有了</span>
+                {% else %}
+                <a href="../{{prev_index}}/"
+                    ><span id="previous">( 快捷键 ← ) 上一章</span></a
+                >
+                {% endif %}
+            </div>
+            <div>
+                <a href=".."><span id="catalog">回目录</span></a>
+            </div>
+            <div>
+                {% if next_index == -1 %}
+                <span id="next">没有了</span>
+                {% else %}
+                <a href="../{{next_index}}/"
+                    ><span id="next">下一章 ( 快捷键 → )</span></a
+                >
+                {% endif %}
+            </div>
+        </div>
+        <script src="{{ url_for('static', filename='axios.min.js') }}"></script>
+        <script>
+            function keyboard(event) {
+                let keycode = event.keyCode;
+                if (keycode == 37) {
+                    document.getElementById("previous").click();
+                } else if (keycode == 39) {
+                    document.getElementById("next").click();
+                } else if (keycode == 13) {
+                    document.getElementById("catalog").click();
+                }
+            }
+            document.addEventListener("keyup", keyboard);
+            window.onload = function () {
+                let hostip = document.cookie.replace(/hostip=/, "");
+                let prefix = "http://";
+                let str = "{{mark}}";
+                let mark = str.replace(/&#34;/gi, '"');
+                let data = JSON.parse(mark);
+
+                axios
+                    .post(prefix + hostip + "/saveBook", data)
+                    .then(function (response) {
+                        // 处理成功情况
+                        //console.log(response);
+                    })
+                    .catch(function (error) {
+                        // 处理错误情况
+                        console.log(error);
+                    })
+                    .then(function () {
+                        // 总是会执行
+                    });
+            };
+        </script>
+    </body>
 </html>

@@ -1,6 +1,10 @@
 import re
 from urllib import parse
-from flask import Flask, render_template, redirect, url_for, request, make_response
+from flask import Flask
+from flask import render_template
+from flask import redirect
+from flask import url_for
+from flask import request
 import httpx
 import zlib
 import json
@@ -32,7 +36,6 @@ class DataStore():
     hostip = ""
     shelf = {}
     catalogs = {}
-    reset = 0  #刷新书架后需刷新目录
 
 
 store = DataStore()
@@ -118,7 +121,7 @@ def get_chapterlist(bookurl):
     return r
 
 
-@cache.cached(timeout=300)
+@cache.cached(timeout=300, key_prefix="content/%s")
 def get_book_content(bookurl, bookindex, n):
     '''
     获取正文
@@ -164,7 +167,7 @@ def sync_mark(url_id, title, index):
     '''
     同步书签
     '''
-    hostip = store.hostip
+    #hostip = store.hostip
     books = store.shelf
     ts = int(datetime.now().timestamp() * 1000)
     for book in books:
@@ -175,8 +178,8 @@ def sync_mark(url_id, title, index):
             mark["durChapterIndex"] = index
             mark["durChapterTitle"] = title
             mark["durChapterTime"] = ts
-            r = httpx.post(prefix + hostip + "/saveBook",
-                           data=json.dumps(mark))
+            #httpx.post(prefix + hostip + "/saveBook", data=json.dumps(mark))
+            return mark
 
 
 @app.route('/', methods=["GET"])
@@ -189,6 +192,7 @@ def bookshelf():
     """
     书架页面
     """
+    cache.clear()
     books = get_bookshelf()
     if books:
         return render_template('bookshelf.html', books=books)
@@ -226,16 +230,9 @@ def content(bookid, index):
     """
     内容页面
     """
-    #data = get_local_txt(bookid, index)
 
     if not store.shelf:
         get_bookshelf()
-
-    #if data:
-    #    print("读取本地缓存")
-    #    sync_mark(bookid, data["title"], index)
-
-    #elif store.shelf:
     if store.shelf:
         bookurl = store.id_to_url.get(str(bookid))
         if not bookurl:
@@ -265,7 +262,6 @@ def content(bookid, index):
         name = store.id_to_name[str(bookid)]
         title = store.id_index_to_title[str(bookid)][str(index)]
         curid = str(bookid)
-        #total_index = store.id_to_totalindex[str(bookid)]
         prev_index = index - 1
         next_index = index + 1
         word = re.sub(r"\s", "", r)
@@ -278,8 +274,7 @@ def content(bookid, index):
             "next_index": next_index,
             "characters_num": len(word)
         }
-        #set_local_txt(str(bookid), str(index), data)
-        sync_mark(bookid, data["title"], index)
+        mark = sync_mark(bookid, data["title"], index)
     else:
         return redirect(url_for("bookshelf"))
 
@@ -290,7 +285,8 @@ def content(bookid, index):
                            bookid=data["bookid"],
                            prev_index=data["prev_index"],
                            next_index=data["next_index"],
-                           characters_num=data["characters_num"])
+                           characters_num=data["characters_num"],
+                           mark=json.dumps(mark))
 
 
 @app.route('/404')

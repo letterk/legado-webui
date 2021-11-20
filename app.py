@@ -19,6 +19,7 @@ config = {
     "CACHE_DEFAULT_TIMEOUT": 300
 }
 app = Flask(__name__)
+app.jinja_env.auto_reload = True
 app.config.from_mapping(config)
 cache = Cache(app)
 

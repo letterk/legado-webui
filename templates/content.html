@@ -96,19 +96,9 @@
                 {% endif %}
             </div>
         </div>
+        <script src="{{ url_for('static', filename='keyup.js') }}"></script>
         <script src="{{ url_for('static', filename='axios.min.js') }}"></script>
         <script>
-            function keyboard(event) {
-                let keycode = event.keyCode;
-                if (keycode == 37) {
-                    document.getElementById("previous").click();
-                } else if (keycode == 39) {
-                    document.getElementById("next").click();
-                } else if (keycode == 13) {
-                    document.getElementById("catalog").click();
-                }
-            }
-            document.addEventListener("keyup", keyboard);
             window.onload = function () {
                 let hostip = document.cookie.replace(/hostip=/, "");
                 let prefix = "http://";

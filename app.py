@@ -109,7 +109,7 @@ def get_chapterlist(bookurl):
     return r
 
 
-def get_book_content(bookurl, bookindex):
+def get_book_content(bookurl, bookindex, n):
     '''
     获取正文
     超时重试3次
@@ -117,24 +117,12 @@ def get_book_content(bookurl, bookindex):
     print("请求app获取正文")
     hostip = store.hostip
     bookurl = parse.quote(bookurl)
-    n = 0
-    try:
+    if n <= 3:
         r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
-                      "&index=" + bookindex)
+                      "&index=" + bookindex,
+                      timeout=5)
         if "data" in r.json():
             return r.json()["data"]
-    except httpx.ReadTimeout:
-        while n <= 3:
-            n += 1
-            print("超时重试:", n, "次")
-            r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
-                          "&index=" + bookindex,
-                          timeout=10)
-            if "data" in r.json():
-                return r.json()["data"]
-    except:
-        return False
-    return
 
 
 def mkdir(path):
@@ -244,9 +232,22 @@ def content(bookid, index):
             return redirect(url_for('go_404'))
         elif not store.id_index_to_title.get(str(bookid)):
             get_chapterlist(bookurl)
-        r = get_book_content(bookurl, str(index))
+
+        n = 1
+        while n <= 3:
+            try:
+                r = get_book_content(bookurl, str(index), n)
+            except httpx.ReadTimeout:
+                print("超时重试:", n, "次")
+                r = False
+            except:
+                # 其他错误跳出循环
+                n = 3
+                r = False
+            n += 1
+
         if r is None:
-            return render_template('error.html', msg="没有新章节了")
+            return render_template('error.html', msg="没有该章节内容")
         elif r is False:
             return render_template('error.html', msg="请检查网络连接")
         content = re.split(r'\n', r)

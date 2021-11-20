@@ -7,6 +7,16 @@ import json
 import os
 from datetime import datetime
 import copy
+from flask_caching import Cache
+
+config = {
+    "DEBUG": True,  # some Flask specific configs
+    "CACHE_TYPE": "SimpleCache",  # Flask-Caching related configs
+    "CACHE_DEFAULT_TIMEOUT": 300
+}
+app = Flask(__name__)
+app.config.from_mapping(config)
+cache = Cache(app)
 
 prefix = "http://"
 
@@ -68,7 +78,7 @@ def get_bookshelf():
     hostip = request.cookies.get('hostip')
     if hostip is None or check_ip(hostip) is False:
         return False
-    store.reset = 1
+    store.id_index_to_title = {}
     store.hostip = hostip
     try:
         books = httpx.get(prefix + hostip + "/getBookshelf")
@@ -105,10 +115,10 @@ def get_chapterlist(bookurl):
     store.id_index_to_title[str(url_id)] = {}
     for i in r:
         store.id_index_to_title[str(url_id)][str(i["index"])] = i["title"]
-    store.reset = 0
     return r
 
 
+@cache.cached(timeout=300)
 def get_book_content(bookurl, bookindex, n):
     '''
     获取正文
@@ -169,9 +179,6 @@ def sync_mark(url_id, title, index):
                            data=json.dumps(mark))
 
 
-app = Flask(__name__)
-
-
 @app.route('/', methods=["GET"])
 def hello():
     return redirect(url_for("bookshelf"))
@@ -202,7 +209,7 @@ def catalog(bookid):
             return redirect(url_for('go_404'))
         name = store.id_to_name[str(bookid)]
         r = store.catalogs.get(str(bookid))
-        if r is None or store.reset == 1:
+        if r is None:
             r = get_chapterlist(bookurl)
         if r:
             store.catalogs[str(bookid)] = r
@@ -214,19 +221,22 @@ def catalog(bookid):
 
 
 @app.route('/bookshelf/<int:bookid>/<int:index>/')
+#@cache.cached(timeout=300)
 def content(bookid, index):
     """
     内容页面
     """
-    data = get_local_txt(bookid, index)
+    #data = get_local_txt(bookid, index)
 
     if not store.shelf:
         get_bookshelf()
 
-    if data:
-        sync_mark(bookid, data["title"], index)
+    #if data:
+    #    print("读取本地缓存")
+    #    sync_mark(bookid, data["title"], index)
 
-    elif store.shelf:
+    #elif store.shelf:
+    if store.shelf:
         bookurl = store.id_to_url.get(str(bookid))
         if not bookurl:
             return redirect(url_for('go_404'))
@@ -237,6 +247,7 @@ def content(bookid, index):
         while n <= 3:
             try:
                 r = get_book_content(bookurl, str(index), n)
+                n = 3
             except httpx.ReadTimeout:
                 print("超时重试:", n, "次")
                 r = False
@@ -267,8 +278,8 @@ def content(bookid, index):
             "next_index": next_index,
             "characters_num": len(word)
         }
-        set_local_txt(str(bookid), str(index), data)
-
+        #set_local_txt(str(bookid), str(index), data)
+        sync_mark(bookid, data["title"], index)
     else:
         return redirect(url_for("bookshelf"))
 

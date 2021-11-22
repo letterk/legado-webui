@@ -149,7 +149,10 @@
         <script>
             function get_cookie_hostip() {
                 let inputbox = document.getElementById("inputip");
-                let hostip = document.cookie.replace(/hostip=/, "");
+                let hostip = document.cookie.replace(
+                    /(?:(?:^|.*;\s*)hostip\s*\=\s*([^;]*).*$)|^.*$/,
+                    "$1"
+                );
                 if (hostip && inputbox) {
                     inputbox.setAttribute("placeholder", hostip);
                 }

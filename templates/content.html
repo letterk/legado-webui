@@ -100,12 +100,14 @@
         <script src="{{ url_for('static', filename='axios.min.js') }}"></script>
         <script>
             window.onload = function () {
-                let hostip = document.cookie.replace(/hostip=/, "");
+                let hostip = document.cookie.replace(
+                    /(?:(?:^|.*;\s*)hostip\s*\=\s*([^;]*).*$)|^.*$/,
+                    "$1"
+                );
                 let prefix = "http://";
                 let str = "{{mark}}";
                 let mark = str.replace(/&#34;/gi, '"');
                 let data = JSON.parse(mark);
-
                 axios
                     .post(prefix + hostip + "/saveBook", data)
                     .then(function (response) {

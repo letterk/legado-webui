@@ -70,10 +70,9 @@
 
             #unread {
                 text-align: center;
-                background:rgba(0, 128, 0, 0.6);
-                color:#FFF;
-                border-radius: 10px;
-                font-size: 12px;
+                background: rgba(0, 128, 0, 0.6);
+                color: #fff;
+                border-radius: 8px;
             }
         </style>
     </head>
@@ -136,7 +135,9 @@
                             >
                         </div>
                     </td>
-                    <td id="unread">{{ book.unread }}</td>
+                    <td>
+                        <div id="unread">{{ book.unread }}</div>
+                    </td>
                     <td>
                         <div>{{ book.author }}</div>
                     </td>

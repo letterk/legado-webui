@@ -135,8 +135,14 @@ def get_book_content(bookurl, bookindex, n):
         r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
                       "&index=" + bookindex,
                       timeout=5)
-        if "data" in r.json():
-            return r.json()["data"]
+        data = r.json().get("data")
+        error = r.json().get("errorMsg")
+        if data:
+            return data
+        elif error == "未找到":
+            return None
+        else:
+            return ""
 
 
 def mkdir(path):
@@ -251,20 +257,30 @@ def content(bookid, index):
                 r = False
             except:
                 # 其他错误跳出循环
+                print("其他错误")
                 n = 3
                 r = False
             n += 1
 
         if r is None:
-            return render_template('error.html', msg="没有该章节内容")
-        elif r is False:
+            return render_template('error.html', msg="没有找到该章节")
+        if r is False:
             return render_template('error.html', msg="请检查网络连接")
         content = re.split(r'\n', r)
         name = store.id_to_name[str(bookid)]
         title = store.id_index_to_title[str(bookid)][str(index)]
         curid = str(bookid)
-        prev_index = index - 1
-        next_index = index + 1
+        total_index = store.id_to_totalindex[str(bookid)]
+        if index - 1 >= 0:
+            prev_index = index - 1
+        else:
+            prev_index = -1
+        if index + 1 <= total_index - 1:
+            next_index = index + 1
+        else:
+            next_index = -1
+        #prev_index = index - 1
+        #next_index = index + 1
         word = re.sub(r"\s", "", r)
         data = {
             "content": content,

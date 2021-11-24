@@ -5,6 +5,7 @@ from flask import render_template
 from flask import redirect
 from flask import url_for
 from flask import request
+from flask import abort
 import httpx
 import zlib
 import json
@@ -122,7 +123,7 @@ def get_chapterlist(bookurl):
     return r
 
 
-@cache.cached(timeout=300, key_prefix="content/%s")
+@cache.cached(timeout=3600, key_prefix="content/%s")
 def get_book_content(bookurl, bookindex, n):
     '''
     获取正文
@@ -217,7 +218,7 @@ def catalog(bookid):
     if store.shelf:
         bookurl = store.id_to_url.get(str(bookid))
         if not bookurl:
-            return redirect(url_for('go_404'))
+            abort(404)
         name = store.id_to_name[str(bookid)]
         r = store.catalogs.get(str(bookid))
         if r is None:
@@ -243,7 +244,7 @@ def content(bookid, index):
     if store.shelf:
         bookurl = store.id_to_url.get(str(bookid))
         if not bookurl:
-            return redirect(url_for('go_404'))
+            abort(404)
         elif not store.id_index_to_title.get(str(bookid)):
             get_chapterlist(bookurl)
 
@@ -263,9 +264,9 @@ def content(bookid, index):
             n += 1
 
         if r is None:
-            return render_template('error.html', msg="没有找到该章节")
+            return render_template('error.html', msg="没有找到该章节"), 404
         if r is False:
-            return render_template('error.html', msg="请检查网络连接")
+            return render_template('error.html', msg="请检查网络连接"), 504
         content = re.split(r'\n', r)
         name = store.id_to_name[str(bookid)]
         title = store.id_index_to_title[str(bookid)][str(index)]
@@ -306,14 +307,9 @@ def content(bookid, index):
                            mark=json.dumps(mark))
 
 
-@app.route('/404')
-def go_404():
-    return render_template('error.html', msg="404页面未找到")
-
-
 @app.errorhandler(404)
-def page_not_found():
-    return redirect(url_for('go_404'))
+def page_not_found(e):
+    return render_template('error.html', msg=e), 404
 
 
 @app.route('/set_ip', methods=['GET', "POST"])

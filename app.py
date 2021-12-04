@@ -12,17 +12,19 @@ import json
 import os
 from datetime import datetime
 import copy
-from flask_caching import Cache
+#from flask_caching import Cache
 
+app = Flask(__name__)
+app.jinja_env.auto_reload = True
+'''
 config = {
     "DEBUG": True,  # some Flask specific configs
     "CACHE_TYPE": "SimpleCache",  # Flask-Caching related configs
     "CACHE_DEFAULT_TIMEOUT": 300
 }
-app = Flask(__name__)
-app.jinja_env.auto_reload = True
 app.config.from_mapping(config)
 cache = Cache(app)
+'''
 
 prefix = "http://"
 
@@ -113,9 +115,11 @@ def get_chapterlist(bookurl):
     bookurl = parse.quote(bookurl)
     try:
         r = httpx.get(prefix + hostip + "/getChapterList?url=" + bookurl)
-    except:
+        r = r.json()["data"]
+    except Exception as e:
+        print("获取目录出错:", str(e))
         return False
-    r = r.json()["data"]
+
     url_id = zlib.crc32(r[0]["bookUrl"].encode('utf8'))
     store.id_index_to_title[str(url_id)] = {}
     for i in r:
@@ -123,7 +127,7 @@ def get_chapterlist(bookurl):
     return r
 
 
-@cache.cached(timeout=3600, key_prefix="content/%s")
+#@cache.cached(timeout=3600, key_prefix="content/%s")
 def get_book_content(bookurl, bookindex, n):
     '''
     获取正文
@@ -135,7 +139,7 @@ def get_book_content(bookurl, bookindex, n):
     if n <= 3:
         r = httpx.get(prefix + hostip + "/getBookContent?url=" + bookurl +
                       "&index=" + bookindex,
-                      timeout=5)
+                      timeout=10)
         data = r.json().get("data")
         error = r.json().get("errorMsg")
         if data:
@@ -146,6 +150,7 @@ def get_book_content(bookurl, bookindex, n):
             return ""
 
 
+'''
 def mkdir(path):
     folder = os.path.exists(path)
     if not folder:
@@ -169,6 +174,7 @@ def set_local_txt(url_id, index, data):
     mkdir(path)
     with open(path + filename, "w+", encoding='utf8') as f:
         json.dump(data, f, ensure_ascii=False)
+'''
 
 
 def sync_mark(url_id, title, index):
@@ -200,7 +206,7 @@ def bookshelf():
     """
     书架页面
     """
-    cache.clear()
+    #cache.clear()
     books = get_bookshelf()
     if books:
         return render_template('bookshelf.html', books=books)
@@ -220,11 +226,12 @@ def catalog(bookid):
         if not bookurl:
             abort(404)
         name = store.id_to_name[str(bookid)]
-        r = store.catalogs.get(str(bookid))
-        if r is None:
-            r = get_chapterlist(bookurl)
+        #r = store.catalogs.get(str(bookid))
+        #if r is None:
+        #    r = get_chapterlist(bookurl)
+        r = get_chapterlist(bookurl)
         if r:
-            store.catalogs[str(bookid)] = r
+            #store.catalogs[str(bookid)] = r
             return render_template('catalog.html', catalogs=r, name=name)
         else:
             return render_template('error.html', msg="请检查网络连接")
@@ -256,9 +263,9 @@ def content(bookid, index):
             except httpx.ReadTimeout:
                 print("超时重试:", n, "次")
                 r = False
-            except:
+            except Exception as e:
                 # 其他错误跳出循环
-                print("其他错误")
+                print("其他错误:" + str(e))
                 n = 3
                 r = False
             n += 1

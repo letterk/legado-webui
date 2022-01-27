@@ -97,6 +97,7 @@
             </div>
         </div>
         <script src="{{ url_for('static', filename='keyup.js') }}"></script>
+        <!--
         <script src="{{ url_for('static', filename='axios.min.js') }}"></script>
         <script>
             window.onload = function () {
@@ -106,8 +107,11 @@
                 );
                 let prefix = "http://";
                 let str = "{{mark}}";
+                console.log(str);
                 let mark = str.replace(/&#34;/gi, '"');
+                //console.log(mark);
                 let data = JSON.parse(mark);
+                //console.log(data);
                 axios
                     .post(prefix + hostip + "/saveBook", data)
                     .then(function (response) {
@@ -123,5 +127,6 @@
                     });
             };
         </script>
+        -->
     </body>
 </html>

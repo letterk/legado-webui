@@ -299,7 +299,7 @@ def content(bookid, index):
             "next_index": next_index,
             "characters_num": len(word)
         }
-        mark = sync_mark(bookid, data["title"], index)
+        #mark = sync_mark(bookid, data["title"], index)
     else:
         return redirect(url_for("bookshelf"))
 
@@ -310,8 +310,8 @@ def content(bookid, index):
                            bookid=data["bookid"],
                            prev_index=data["prev_index"],
                            next_index=data["next_index"],
-                           characters_num=data["characters_num"],
-                           mark=json.dumps(mark))
+                           characters_num=data["characters_num"])
+    #mark=json.dumps(mark))
 
 
 @app.errorhandler(404)

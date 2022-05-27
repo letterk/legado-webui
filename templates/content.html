@@ -17,6 +17,12 @@
                 margin: auto;
             }
 
+            button {
+                position: fixed;
+                bottom: 88px;
+                right: 14px;
+            }
+
             h2 {
                 margin: auto;
                 font-family: "LXGW WENKAI";
@@ -64,6 +70,7 @@
     </head>
 
     <body>
+        <button type="button" onclick="saveMark()">存书签</button>
         <div class="characters">{{ characters_num }} 字</div>
         <h2>{{ title }}</h2>
 
@@ -97,26 +104,28 @@
             </div>
         </div>
         <script src="{{ url_for('static', filename='keyup.js') }}"></script>
-        <!--
+
         <script src="{{ url_for('static', filename='axios.min.js') }}"></script>
         <script>
-            window.onload = function () {
-                let hostip = document.cookie.replace(
+            function saveMark() {
+                var hostip = document.cookie.replace(
                     /(?:(?:^|.*;\s*)hostip\s*\=\s*([^;]*).*$)|^.*$/,
                     "$1"
                 );
-                let prefix = "http://";
-                let str = "{{mark}}";
-                console.log(str);
-                let mark = str.replace(/&#34;/gi, '"');
+                var prefix = "http://";
+                var str = "{{mark}}";
+                //console.log(str);
+                var mark = str.replace(/&#39;|&#34;/gi, '"');
                 //console.log(mark);
-                let data = JSON.parse(mark);
+                var data = JSON.parse(mark);
                 //console.log(data);
+
                 axios
-                    .post(prefix + hostip + "/saveBook", data)
+                    .post(prefix + hostip + "/saveBookProgress", data)
                     .then(function (response) {
                         // 处理成功情况
-                        //console.log(response);
+                        console.log(response);
+                        console.log("保存书签ok");
                     })
                     .catch(function (error) {
                         // 处理错误情况
@@ -125,8 +134,7 @@
                     .then(function () {
                         // 总是会执行
                     });
-            };
+            }
         </script>
-        -->
     </body>
 </html>

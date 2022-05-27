@@ -8,10 +8,10 @@ from flask import request
 from flask import abort
 import httpx
 import zlib
-import json
-import os
+#import json
+#import os
 from datetime import datetime
-import copy
+#import copy
 #from flask_caching import Cache
 
 app = Flask(__name__)
@@ -40,6 +40,7 @@ class DataStore():
     hostip = ""
     shelf = {}
     catalogs = {}
+    #status = {}
 
 
 store = DataStore()
@@ -180,20 +181,82 @@ def set_local_txt(url_id, index, data):
 def sync_mark(url_id, title, index):
     '''
     同步书签
+    post("/saveBookProgress", {
+        name: this.$store.state.readingBook.bookName,
+        author: this.$store.state.readingBook.bookAuthor,
+        durChapterIndex: index,
+        durChapterPos: 0,
+        durChapterTime: new Date().getTime(),
+        durChapterTitle: title,
+      })
     '''
     #hostip = store.hostip
-    books = store.shelf
-    ts = int(datetime.now().timestamp() * 1000)
-    for book in books:
+    #books = store.shelf
+    #ts = int(datetime.now().timestamp() * 1000)
+    for book in store.shelf:
         if book["id"] == url_id:
+            '''
             mark = copy.copy(book)
             mark.pop("id")
             mark.pop("unread")
             mark["durChapterIndex"] = index
             mark["durChapterTitle"] = title
             mark["durChapterTime"] = ts
+            '''
+            mark = {
+                "name": book["name"],
+                "author": book["author"],
+                "durChapterIndex": index,
+                "durChapterPos": 0,
+                "durChapterTime": int(datetime.now().timestamp() * 1000),
+                "durChapterTitle": title
+            }
+
             #httpx.post(prefix + hostip + "/saveBook", data=json.dumps(mark))
             return mark
+
+
+"""
+def post_save_mark():
+    '''
+    保存书签
+    post("/saveBookProgress", {
+        name: this.$store.state.readingBook.bookName,
+        author: this.$store.state.readingBook.bookAuthor,
+        durChapterIndex: index,
+        durChapterPos: 0,
+        durChapterTime: new Date().getTime(),
+        durChapterTitle: title,
+      })
+    '''
+    #if not store.status:
+    #    return
+    url_id = store.status["id"]
+    title = store.status["title"]
+    index = store.status["index"]
+
+    hostip = store.hostip
+    books = store.shelf
+    #ct = int(datetime.now().timestamp() * 1000)
+    for book in books:
+        if book["id"] == url_id:
+            mark = {
+                "name": book["name"],
+                "author": book["author"],
+                "durChapterIndex": index,
+                "durChapterPos": 0,
+                "durChapterTime": int(datetime.now().timestamp() * 1000),
+                "durChapterTitle": title
+            }
+            #r = httpx.post(prefix + hostip + "/saveBookProgress",
+            #               data=json.dumps(mark))
+            print(mark)
+            mark = {}
+            #store.status = {}
+            break
+
+
+"""
 
 
 @app.route('/', methods=["GET"])
@@ -299,7 +362,8 @@ def content(bookid, index):
             "next_index": next_index,
             "characters_num": len(word)
         }
-        #mark = sync_mark(bookid, data["title"], index)
+        mark = sync_mark(bookid, data["title"], index)
+        #store.status = {"id": bookid, "title": data["title"], "index": index}
     else:
         return redirect(url_for("bookshelf"))
 
@@ -310,7 +374,8 @@ def content(bookid, index):
                            bookid=data["bookid"],
                            prev_index=data["prev_index"],
                            next_index=data["next_index"],
-                           characters_num=data["characters_num"])
+                           characters_num=data["characters_num"],
+                           mark=mark)
     #mark=json.dumps(mark))
 
 
@@ -319,6 +384,7 @@ def page_not_found(e):
     return render_template('error.html', msg=e), 404
 
 
+'''
 @app.route('/set_ip', methods=['GET', "POST"])
 def set_ip():
     if request.method == 'POST':
@@ -329,3 +395,4 @@ def set_ip():
             return render_template('bookshelf.html', islegado=False)
     else:
         return render_template('bookshelf.html', islegado=False)
+'''

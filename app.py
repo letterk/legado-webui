@@ -384,7 +384,6 @@ def page_not_found(e):
     return render_template('error.html', msg=e), 404
 
 
-'''
 @app.route('/set_ip', methods=['GET', "POST"])
 def set_ip():
     if request.method == 'POST':
@@ -395,4 +394,3 @@ def set_ip():
             return render_template('bookshelf.html', islegado=False)
     else:
         return render_template('bookshelf.html', islegado=False)
-'''

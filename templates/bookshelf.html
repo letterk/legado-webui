@@ -134,7 +134,13 @@
                         </div>
                     </td>
                     <td>
+                        {% if book.unread %}
                         <div id="unread">{{ book.unread }}</div>
+                        {% else %}
+                        <div id="unread" style="background-color: #bbb">
+                            {{ book.unread }}
+                        </div>
+                        {% endif %}
                     </td>
                     <td>
                         <div>{{ book.author }}</div>
